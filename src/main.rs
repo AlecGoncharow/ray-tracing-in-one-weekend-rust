@@ -1,6 +1,9 @@
 use std::fs::File;
 use std::io::prelude::*;
 
+mod vec;
+use vec::Vec3;
+
 struct Output {
     rows: u32,
     cols: u32,
@@ -39,16 +42,16 @@ fn main() -> std::io::Result<()> {
 
     for i in 0..out.rows {
         for j in 0..out.cols {
-            if j == 0 {}
-
-            let r = j as f32 / out.cols as f32;
-            let g = (out.rows - i) as f32 / out.rows as f32;
-            let b = 0.2f32;
+            let normalized_colors = Vec3::new(
+                j as f32 / out.cols as f32,
+                (out.rows - i) as f32 / out.rows as f32,
+                0.2f32,
+            );
 
             let color = Color {
-                r: (r * 255.99) as u8,
-                g: (g * 255.99) as u8,
-                b: (b * 255.99) as u8,
+                r: (normalized_colors.x * 255.99) as u8,
+                g: (normalized_colors.y * 255.99) as u8,
+                b: (normalized_colors.z * 255.99) as u8,
             };
 
             out.colors.push(color);
