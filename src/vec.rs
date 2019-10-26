@@ -36,6 +36,21 @@ impl Vec3 {
         }
     }
 
+    #[inline]
+    pub fn refract(&self, n: &Self, ni_over_nt: f32) -> Option<Self> {
+        let uv = self.make_unit_vector();
+        let dt = uv.dot(n);
+        let discriminant = 1.0 - ((ni_over_nt * ni_over_nt) * (1.0 - (dt * dt)));
+        if discriminant > 0.0 {
+            // source https://raytracing.github.io/books/RayTracingInOneWeekend.html#dielectrics
+            // @TODO understand what this is actually calculating
+            Some((ni_over_nt * (uv - (dt * *n))) - (discriminant.sqrt() * *n))
+        } else {
+            None
+        }
+    }
+
+    #[inline]
     pub fn reflect(&self, orthogonal_unit_vector: &Self) -> Self {
         *self - (2.0 * (self.dot(orthogonal_unit_vector) * *orthogonal_unit_vector))
     }

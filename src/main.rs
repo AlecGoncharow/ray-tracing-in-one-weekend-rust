@@ -9,6 +9,7 @@ use hittable::Sphere;
 
 mod camera;
 mod material;
+use material::Dielectric;
 use material::Lambertian;
 use material::Metal;
 
@@ -63,6 +64,9 @@ impl Color {
 fn color(ray: Ray, world: Box<&dyn Hittable>, depth: u32) -> Vec3 {
     if let Some(hit) = world.hit(&ray, 0.001, std::f32::MAX) {
         if let Some((scattered, attenuation)) = hit.material.scatter(&ray, &hit) {
+            if depth >= 50 {
+                return Vec3::new(0.0, 0.0, 0.0);
+            }
             return attenuation.make_comp_mul(&color(scattered, world, depth + 1));
         } else {
             // absorbed
@@ -110,13 +114,19 @@ fn main() -> std::io::Result<()> {
     world.push(Box::new(Sphere::new(
         Vec3::new(-1.0, 0.0, -1.0),
         0.5,
-        Box::new(Metal::new(Vec3::new(0.8, 0.6, 0.2))),
+        Box::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.2)),
     )));
 
     world.push(Box::new(Sphere::new(
         Vec3::new(1.0, 0.0, -1.0),
         0.5,
-        Box::new(Metal::new(Vec3::new(0.8, 0.8, 0.8))),
+        Box::new(Dielectric::new(1.5)),
+    )));
+
+    world.push(Box::new(Sphere::new(
+        Vec3::new(1.0, 0.0, -1.0),
+        -0.45,
+        Box::new(Dielectric::new(1.5)),
     )));
 
     for j in 0..out.rows {
