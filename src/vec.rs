@@ -1,6 +1,6 @@
 use std::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Vec3 {
     pub x: f32,
     pub y: f32,
@@ -21,9 +21,9 @@ impl Vec3 {
     #[inline]
     pub fn cross(&self, other: &Self) -> Self {
         Self {
-            x: self.y * other.z - self.z * other.y,
-            y: self.z * other.x - self.x * other.z,
-            z: self.x * other.y - self.y * other.x,
+            x: (self.y * other.z) - (self.z * other.y),
+            y: (self.z * other.x) - (self.x * other.z),
+            z: (self.x * other.y) - (self.y * other.x),
         }
     }
 

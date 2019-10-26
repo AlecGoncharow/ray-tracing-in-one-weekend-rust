@@ -97,7 +97,14 @@ fn main() -> std::io::Result<()> {
         colors: vec![],
     };
     let num_samples = 100;
-    let camera = camera::Camera::new();
+    let camera = camera::Camera::new(
+        Vec3::new(-2.0, 2.0, 1.0),
+        Vec3::new(0.0, 0.0, -1.0),
+        Vec3::new(0.0, 1.0, 0.0),
+        30.0,
+        out.cols as f32 / out.rows as f32,
+    );
+
     let mut rng = rand::thread_rng();
     let mut world = HittableList::new();
     world.push(Box::new(Sphere::new(
@@ -112,19 +119,19 @@ fn main() -> std::io::Result<()> {
     )));
 
     world.push(Box::new(Sphere::new(
-        Vec3::new(-1.0, 0.0, -1.0),
+        Vec3::new(1.0, 0.0, -1.0),
         0.5,
         Box::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.2)),
     )));
 
     world.push(Box::new(Sphere::new(
-        Vec3::new(1.0, 0.0, -1.0),
+        Vec3::new(-1.0, 0.0, -1.0),
         0.5,
         Box::new(Dielectric::new(1.5)),
     )));
 
     world.push(Box::new(Sphere::new(
-        Vec3::new(1.0, 0.0, -1.0),
+        Vec3::new(-1.0, 0.0, -1.0),
         -0.45,
         Box::new(Dielectric::new(1.5)),
     )));
