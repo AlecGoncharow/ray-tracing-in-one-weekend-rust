@@ -28,6 +28,15 @@ impl Vec3 {
     }
 
     #[inline]
+    pub fn gamma_two(&self) -> Self {
+        Self {
+            x: self.x.sqrt(),
+            y: self.y.sqrt(),
+            z: self.z.sqrt(),
+        }
+    }
+
+    #[inline]
     pub fn make_comp_mul(&self, other: &Self) -> Self {
         Self {
             x: self.x * other.x,
