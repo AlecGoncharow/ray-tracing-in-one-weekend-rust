@@ -1,15 +1,22 @@
+use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec::Vec3;
 
-pub struct HitRecord {
+pub struct HitRecord<'a> {
     pub t: f32,
     pub point: Vec3,
     pub normal: Vec3,
+    pub material: &'a Box<dyn Material>,
 }
 
-impl HitRecord {
-    fn new(t: f32, point: Vec3, normal: Vec3) -> Self {
-        Self { t, point, normal }
+impl<'a> HitRecord<'a> {
+    fn new(t: f32, point: Vec3, normal: Vec3, material: &'a Box<dyn Material>) -> Self {
+        Self {
+            t,
+            point,
+            normal,
+            material,
+        }
     }
 }
 
@@ -20,11 +27,16 @@ pub trait Hittable {
 pub struct Sphere {
     center: Vec3,
     radius: f32,
+    material: Box<dyn Material>,
 }
 
 impl Sphere {
-    pub fn new(center: Vec3, radius: f32) -> Self {
-        Self { center, radius }
+    pub fn new(center: Vec3, radius: f32, material: Box<dyn Material>) -> Self {
+        Self {
+            center,
+            radius,
+            material,
+        }
     }
 }
 
@@ -37,7 +49,12 @@ impl Hittable for Sphere {
         let discriminant = b * b - a * c;
 
         if discriminant > 0.0 {
-            let mut rec = HitRecord::new(0.0, Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0));
+            let mut rec = HitRecord::new(
+                0.0,
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(0.0, 0.0, 0.0),
+                &self.material,
+            );
 
             // check - root
             let mut temp = (-b - discriminant.sqrt()) / a;

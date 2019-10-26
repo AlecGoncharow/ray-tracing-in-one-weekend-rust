@@ -8,6 +8,9 @@ use hittable::HittableList;
 use hittable::Sphere;
 
 mod camera;
+mod material;
+use material::Lambertian;
+use material::Metal;
 
 mod ray;
 use ray::Ray;
@@ -57,17 +60,19 @@ impl Color {
     }
 }
 
-fn color(ray: Ray, world: Box<&dyn Hittable>) -> Vec3 {
+fn color(ray: Ray, world: Box<&dyn Hittable>, depth: u32) -> Vec3 {
     if let Some(hit) = world.hit(&ray, 0.001, std::f32::MAX) {
-        // normalize between 0.0 - 1.0
-        let target = hit.point + hit.normal + random_point_in_unit_sphere();
-        return 0.5 * color(Ray::new(hit.point, target - hit.point), world);
+        if let Some((scattered, attenuation)) = hit.material.scatter(&ray, &hit) {
+            return attenuation.make_comp_mul(&color(scattered, world, depth + 1));
+        } else {
+            // absorbed
+            return Vec3::new(0.0, 0.0, 0.0);
+        }
     }
 
     let unit_direction = ray.direction.make_unit_vector();
     let t = 0.5 * (unit_direction.y + 1.0);
-    let temp_color = (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0);
-    temp_color
+    (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
 }
 
 fn random_point_in_unit_sphere() -> Vec3 {
@@ -91,8 +96,28 @@ fn main() -> std::io::Result<()> {
     let camera = camera::Camera::new();
     let mut rng = rand::thread_rng();
     let mut world = HittableList::new();
-    world.push(Box::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5)));
-    world.push(Box::new(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0)));
+    world.push(Box::new(Sphere::new(
+        Vec3::new(0.0, 0.0, -1.0),
+        0.5,
+        Box::new(Lambertian::new(Vec3::new(0.8, 0.3, 0.3))),
+    )));
+    world.push(Box::new(Sphere::new(
+        Vec3::new(0.0, -100.5, -1.0),
+        100.0,
+        Box::new(Lambertian::new(Vec3::new(0.8, 0.8, 0.0))),
+    )));
+
+    world.push(Box::new(Sphere::new(
+        Vec3::new(-1.0, 0.0, -1.0),
+        0.5,
+        Box::new(Metal::new(Vec3::new(0.8, 0.6, 0.2))),
+    )));
+
+    world.push(Box::new(Sphere::new(
+        Vec3::new(1.0, 0.0, -1.0),
+        0.5,
+        Box::new(Metal::new(Vec3::new(0.8, 0.8, 0.8))),
+    )));
 
     for j in 0..out.rows {
         for i in 0..out.cols {
@@ -102,7 +127,7 @@ fn main() -> std::io::Result<()> {
                 let u = (i as f32 + rng.gen::<f32>()) / out.cols as f32;
                 let v = (out.rows as f32 - (j as f32 + rng.gen::<f32>())) / out.rows as f32;
                 let ray = camera.get_ray(u, v);
-                sampled_color_sum += color(ray, Box::new(&world))
+                sampled_color_sum += color(ray, Box::new(&world), 0)
             }
 
             let unsum = sampled_color_sum * (1.0 / num_samples as f32);

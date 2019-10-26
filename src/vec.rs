@@ -36,6 +36,10 @@ impl Vec3 {
         }
     }
 
+    pub fn reflect(&self, orthogonal_unit_vector: &Self) -> Self {
+        *self - (2.0 * (self.dot(orthogonal_unit_vector) * *orthogonal_unit_vector))
+    }
+
     #[inline]
     pub fn make_comp_mul(&self, other: &Self) -> Self {
         Self {
