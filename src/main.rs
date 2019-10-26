@@ -97,12 +97,20 @@ fn main() -> std::io::Result<()> {
         colors: vec![],
     };
     let num_samples = 100;
+
+    let look_from = Vec3::new(3.0, 3.0, 2.0);
+    let look_at = Vec3::new(0.0, 0.0, -1.0);
+    let dist_to_focus = (look_from - look_at).magnitude();
+    let aperature = 2.0;
+
     let camera = camera::Camera::new(
-        Vec3::new(-2.0, 2.0, 1.0),
-        Vec3::new(0.0, 0.0, -1.0),
+        look_from,
+        look_at,
         Vec3::new(0.0, 1.0, 0.0),
-        30.0,
+        20.0,
         out.cols as f32 / out.rows as f32,
+        aperature,
+        dist_to_focus,
     );
 
     let mut rng = rand::thread_rng();
