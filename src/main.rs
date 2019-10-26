@@ -1,6 +1,11 @@
 use std::fs::File;
 use std::io::prelude::*;
 
+mod hittable;
+use hittable::Hittable;
+use hittable::HittableList;
+use hittable::Sphere;
+
 mod ray;
 use ray::Ray;
 mod vec;
@@ -49,7 +54,13 @@ impl Color {
     }
 }
 
-fn color(ray: Ray) -> Color {
+fn color(ray: Ray, world: Box<&dyn Hittable>) -> Color {
+    if let Some(hit) = world.hit(&ray, 0.0, std::f32::MAX) {
+        // normalize between 0.0 - 1.0
+        let color_vec = 0.5 * (hit.normal + Vec3::new(1.0, 1.0, 1.0));
+        return Color::from_normalized_vec3(color_vec);
+    }
+
     let unit_direction = ray.direction.make_unit_vector();
     let t = 0.5 * (unit_direction.y + 1.0);
     let temp_color = (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0);
@@ -66,16 +77,20 @@ fn main() -> std::io::Result<()> {
     let lower_left_corner = Vec3::new(-2.0, -1.0, -1.0);
     let horizontal = Vec3::new(4.0, 0.0, 0.0);
     let vertical = Vec3::new(0.0, 2.0, 0.0);
-    let origin = Vec3::new(0.0, 0.0, -0.0);
+    let origin = Vec3::new(0.0, 0.0, 0.0);
+
+    let mut world = HittableList::new();
+    world.push(Box::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5)));
+    world.push(Box::new(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0)));
 
     for j in 0..out.rows {
         for i in 0..out.cols {
             let u = i as f32 / out.cols as f32;
-            let v = (out.rows - j) as f32 / out.cols as f32;
+            let v = (out.rows - j) as f32 / out.rows as f32;
 
             let ray = Ray::new(origin, lower_left_corner + u * horizontal + v * vertical);
 
-            let color = color(ray);
+            let color = color(ray, Box::new(&world));
 
             out.colors.push(color);
         }
