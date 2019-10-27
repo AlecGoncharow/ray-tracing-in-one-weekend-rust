@@ -170,7 +170,7 @@ fn main() -> std::io::Result<()> {
         cols: 1200,
         colors: vec![],
     };
-    let num_samples = 10;
+    let num_samples = 100;
 
     let look_from = Vec3::new(13.0, 2.0, 3.0);
     let look_at = Vec3::new(0.0, 0.0, 0.0);
@@ -192,6 +192,7 @@ fn main() -> std::io::Result<()> {
     let world = random_scene();
 
     for j in 0..out.rows {
+        println!("row: {:?}", j);
         for i in 0..out.cols {
             let mut sampled_color_sum = Vec3::new(0.0, 0.0, 0.0);
 
