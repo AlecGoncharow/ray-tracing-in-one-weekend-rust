@@ -166,8 +166,8 @@ fn random_scene() -> HittableList {
 
 fn main() -> std::io::Result<()> {
     let mut out = Output {
-        rows: 800,
-        cols: 1200,
+        rows: 1080,
+        cols: 1920,
         colors: vec![],
     };
     let num_samples = 100;
