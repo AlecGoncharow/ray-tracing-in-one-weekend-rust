@@ -90,18 +90,93 @@ fn random_point_in_unit_sphere() -> Vec3 {
     point
 }
 
+fn random_scene() -> HittableList {
+    let mut rng = rand::thread_rng();
+    let mut list = HittableList::new();
+    list.push(Box::new(Sphere::new(
+        Vec3::new(0.0, -1000.0, -0.0),
+        1000.0,
+        Box::new(Lambertian::new(Vec3::new(0.5, 0.5, 0.5))),
+    )));
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_mat = rng.gen::<f32>();
+            let center = Vec3::new(
+                a as f32 + 0.9 * rng.gen::<f32>(),
+                0.2,
+                b as f32 + 0.9 * rng.gen::<f32>(),
+            );
+            if choose_mat < 0.8 {
+                // diffuse
+                list.push(Box::new(Sphere::new(
+                    center,
+                    0.2,
+                    Box::new(Lambertian::new(Vec3::new(
+                        rng.gen::<f32>() * rng.gen::<f32>(),
+                        rng.gen::<f32>() * rng.gen::<f32>(),
+                        rng.gen::<f32>() * rng.gen::<f32>(),
+                    ))),
+                )));
+            } else if choose_mat < 0.95 {
+                // metal
+                list.push(Box::new(Sphere::new(
+                    center,
+                    0.2,
+                    Box::new(Metal::new(
+                        Vec3::new(
+                            0.5 * (1.0 + rng.gen::<f32>()),
+                            0.5 * (1.0 + rng.gen::<f32>()),
+                            0.5 * (1.0 + rng.gen::<f32>()),
+                        ),
+                        0.5 * rng.gen::<f32>(),
+                    )),
+                )));
+            } else {
+                // glass
+                list.push(Box::new(Sphere::new(
+                    center,
+                    0.2,
+                    Box::new(Dielectric::new(1.5)),
+                )));
+            }
+        }
+    }
+
+    list.push(Box::new(Sphere::new(
+        Vec3::new(-4.0, 1.0, 0.0),
+        1.0,
+        Box::new(Lambertian::new(Vec3::new(0.4, 0.2, 0.1))),
+    )));
+
+    list.push(Box::new(Sphere::new(
+        Vec3::new(4.0, 1.0, 0.0),
+        1.0,
+        Box::new(Metal::new(Vec3::new(0.7, 0.6, 0.5), 0.0)),
+    )));
+
+    list.push(Box::new(Sphere::new(
+        Vec3::new(0.0, 1.0, 0.0),
+        1.0,
+        Box::new(Dielectric::new(1.5)),
+    )));
+
+    list
+}
+
 fn main() -> std::io::Result<()> {
     let mut out = Output {
-        rows: 250,
-        cols: 500,
+        rows: 800,
+        cols: 1200,
         colors: vec![],
     };
-    let num_samples = 100;
+    let num_samples = 10;
 
-    let look_from = Vec3::new(3.0, 3.0, 2.0);
-    let look_at = Vec3::new(0.0, 0.0, -1.0);
-    let dist_to_focus = (look_from - look_at).magnitude();
-    let aperature = 2.0;
+    let look_from = Vec3::new(13.0, 2.0, 3.0);
+    let look_at = Vec3::new(0.0, 0.0, 0.0);
+    //let dist_to_focus = (look_from - look_at).magnitude();
+    let dist_to_focus = 10.0;
+    let aperature = 0.1;
 
     let camera = camera::Camera::new(
         look_from,
@@ -114,35 +189,7 @@ fn main() -> std::io::Result<()> {
     );
 
     let mut rng = rand::thread_rng();
-    let mut world = HittableList::new();
-    world.push(Box::new(Sphere::new(
-        Vec3::new(0.0, 0.0, -1.0),
-        0.5,
-        Box::new(Lambertian::new(Vec3::new(0.8, 0.3, 0.3))),
-    )));
-    world.push(Box::new(Sphere::new(
-        Vec3::new(0.0, -100.5, -1.0),
-        100.0,
-        Box::new(Lambertian::new(Vec3::new(0.8, 0.8, 0.0))),
-    )));
-
-    world.push(Box::new(Sphere::new(
-        Vec3::new(1.0, 0.0, -1.0),
-        0.5,
-        Box::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.2)),
-    )));
-
-    world.push(Box::new(Sphere::new(
-        Vec3::new(-1.0, 0.0, -1.0),
-        0.5,
-        Box::new(Dielectric::new(1.5)),
-    )));
-
-    world.push(Box::new(Sphere::new(
-        Vec3::new(-1.0, 0.0, -1.0),
-        -0.45,
-        Box::new(Dielectric::new(1.5)),
-    )));
+    let world = random_scene();
 
     for j in 0..out.rows {
         for i in 0..out.cols {
