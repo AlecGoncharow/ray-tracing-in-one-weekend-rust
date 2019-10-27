@@ -1,6 +1,8 @@
 use rand::Rng;
 use std::fs::File;
 use std::io::prelude::*;
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 mod hittable;
 use hittable::Hittable;
@@ -21,7 +23,7 @@ use vec::Vec3;
 struct Output {
     rows: u32,
     cols: u32,
-    colors: Vec<Color>,
+    colors: Arc<Mutex<Vec<Color>>>,
 }
 
 impl Output {
@@ -32,7 +34,7 @@ impl Output {
 
         file.write_all(header.as_bytes())?;
 
-        self.colors.iter().for_each(|color| {
+        self.colors.lock().unwrap().iter().for_each(|color| {
             let row = format!("{} {} {}\n", color.r, color.g, color.b);
             file.write_all(row.as_bytes()).expect("color machine broke");
         });
@@ -41,6 +43,7 @@ impl Output {
     }
 }
 
+#[derive(Clone)]
 struct Color {
     r: u8,
     g: u8,
@@ -164,12 +167,17 @@ fn random_scene() -> HittableList {
     list
 }
 
+struct OrderedColorVec {
+    index: u32,
+    colors: Arc<Mutex<Vec<Color>>>,
+}
+
 fn main() -> std::io::Result<()> {
-    let mut out = Output {
-        rows: 1080,
-        cols: 1920,
-        colors: vec![],
-    };
+    let out = Arc::new(Output {
+        rows: 400,
+        cols: 800,
+        colors: Arc::new(Mutex::new(vec![])),
+    });
     let num_samples = 100;
 
     let look_from = Vec3::new(13.0, 2.0, 3.0);
@@ -178,7 +186,7 @@ fn main() -> std::io::Result<()> {
     let dist_to_focus = 10.0;
     let aperature = 0.1;
 
-    let camera = camera::Camera::new(
+    let camera = Arc::new(camera::Camera::new(
         look_from,
         look_at,
         Vec3::new(0.0, 1.0, 0.0),
@@ -186,27 +194,65 @@ fn main() -> std::io::Result<()> {
         out.cols as f32 / out.rows as f32,
         aperature,
         dist_to_focus,
-    );
+    ));
 
-    let mut rng = rand::thread_rng();
-    let world = random_scene();
+    let world = Arc::new(random_scene());
 
-    for j in 0..out.rows {
-        println!("row: {:?}", j);
-        for i in 0..out.cols {
-            let mut sampled_color_sum = Vec3::new(0.0, 0.0, 0.0);
+    let mut threads = vec![];
+    let color_vecs: Arc<Mutex<Vec<OrderedColorVec>>> = Arc::new(Mutex::new(vec![]));
 
-            for _ in 0..num_samples {
-                let u = (i as f32 + rng.gen::<f32>()) / out.cols as f32;
-                let v = (out.rows as f32 - (j as f32 + rng.gen::<f32>())) / out.rows as f32;
-                let ray = camera.get_ray(u, v);
-                sampled_color_sum += color(ray, Box::new(&world), 0)
+    let colors_one: Arc<Mutex<Vec<Color>>> = Arc::new(Mutex::new(vec![]));
+    for i in 0..8 {
+        let world = Arc::clone(&world);
+        let camera = Arc::clone(&camera);
+        let out = Arc::clone(&out);
+        let mut colors = OrderedColorVec {
+            index: i,
+            colors: Arc::new(Mutex::new(vec![])),
+        };
+        let color_vecs = Arc::clone(&color_vecs);
+        threads.push(thread::spawn(move || {
+            let mut rng = rand::thread_rng();
+            let start_row = i * out.rows / 8;
+            let end_row = start_row + out.rows / 8;
+
+            for j in start_row..end_row {
+                println!("row: {:?}", j);
+                for i in 0..out.cols {
+                    let mut sampled_color_sum = Vec3::new(0.0, 0.0, 0.0);
+
+                    for _ in 0..num_samples {
+                        let u = (i as f32 + rng.gen::<f32>()) / out.cols as f32;
+                        let v = (out.rows as f32 - (j as f32 + rng.gen::<f32>())) / out.rows as f32;
+                        let ray = camera.get_ray(u, v);
+                        sampled_color_sum += color(ray, Box::new(&*world), 0)
+                    }
+
+                    let unsum = sampled_color_sum * (1.0 / num_samples as f32);
+
+                    let color = Color::from_normalized_vec3(unsum.gamma_two());
+                    colors.colors.lock().unwrap().push(color);
+                }
             }
 
-            let unsum = sampled_color_sum * (1.0 / num_samples as f32);
+            println!("thread done");
+            color_vecs.lock().unwrap().push(colors);
+        }));
+    }
 
-            let color = Color::from_normalized_vec3(unsum.gamma_two());
-            out.colors.push(color);
+    for t in threads {
+        t.join().unwrap();
+    }
+
+    color_vecs
+        .lock()
+        .unwrap()
+        .sort_by(|a, b| a.index.cmp(&b.index));
+
+    for color_vec in color_vecs.lock().unwrap().iter() {
+        println!("adding index: {:?} colors", color_vec.index);
+        for color in color_vec.colors.lock().unwrap().iter() {
+            out.colors.lock().unwrap().push(color.clone());
         }
     }
 

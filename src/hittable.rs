@@ -6,11 +6,16 @@ pub struct HitRecord<'a> {
     pub t: f32,
     pub point: Vec3,
     pub normal: Vec3,
-    pub material: &'a Box<dyn Material>,
+    pub material: &'a Box<dyn Material + Send + Sync>,
 }
 
 impl<'a> HitRecord<'a> {
-    fn new(t: f32, point: Vec3, normal: Vec3, material: &'a Box<dyn Material>) -> Self {
+    fn new(
+        t: f32,
+        point: Vec3,
+        normal: Vec3,
+        material: &'a Box<dyn Material + Send + Sync>,
+    ) -> Self {
         Self {
             t,
             point,
@@ -27,11 +32,11 @@ pub trait Hittable {
 pub struct Sphere {
     center: Vec3,
     radius: f32,
-    material: Box<dyn Material>,
+    material: Box<dyn Material + Send + Sync>,
 }
 
 impl Sphere {
-    pub fn new(center: Vec3, radius: f32, material: Box<dyn Material>) -> Self {
+    pub fn new(center: Vec3, radius: f32, material: Box<dyn Material + Send + Sync>) -> Self {
         Self {
             center,
             radius,
@@ -79,7 +84,7 @@ impl Hittable for Sphere {
 }
 
 pub struct HittableList {
-    list: Vec<Box<dyn Hittable>>,
+    list: Vec<Box<dyn Hittable + Send + Sync>>,
 }
 
 impl HittableList {
@@ -87,7 +92,7 @@ impl HittableList {
         Self { list: vec![] }
     }
 
-    pub fn push(&mut self, item: Box<dyn Hittable>) {
+    pub fn push(&mut self, item: Box<dyn Hittable + Send + Sync>) {
         self.list.push(item);
     }
 }
