@@ -201,12 +201,11 @@ fn main() -> std::io::Result<()> {
     let mut threads = vec![];
     let color_vecs: Arc<Mutex<Vec<OrderedColorVec>>> = Arc::new(Mutex::new(vec![]));
 
-    let colors_one: Arc<Mutex<Vec<Color>>> = Arc::new(Mutex::new(vec![]));
     for i in 0..8 {
         let world = Arc::clone(&world);
         let camera = Arc::clone(&camera);
         let out = Arc::clone(&out);
-        let mut colors = OrderedColorVec {
+        let colors = OrderedColorVec {
             index: i,
             colors: Arc::new(Mutex::new(vec![])),
         };
