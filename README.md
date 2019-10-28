@@ -5,6 +5,9 @@ reference: https://raytracing.github.io/books/RayTracingInOneWeekend.html
 reference scene
 ![sample.png](examples/sample.png)
 
+textured scene
+![](examples/checkers.png)
+
 5x5 cube
 ![](examples/5x5cube.png)
 
