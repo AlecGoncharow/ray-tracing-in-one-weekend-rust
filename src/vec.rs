@@ -104,6 +104,12 @@ impl Vec3 {
     }
 }
 
+impl From<(f32, f32, f32)> for Vec3 {
+    fn from(tuple: (f32, f32, f32)) -> Self {
+        Self::new(tuple.0, tuple.1, tuple.2)
+    }
+}
+
 impl Add for Vec3 {
     type Output = Self;
 

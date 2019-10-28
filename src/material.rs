@@ -1,6 +1,7 @@
 use crate::hittable::HitRecord;
 use crate::random_point_in_unit_sphere;
 use crate::ray::Ray;
+use crate::texture::Texture;
 use crate::vec::Vec3;
 
 use rand::Rng;
@@ -11,11 +12,11 @@ pub trait Material {
 }
 
 pub struct Lambertian {
-    albedo: Vec3,
+    albedo: Box<dyn Texture + Send + Sync>,
 }
 
 impl Lambertian {
-    pub fn new(albedo: Vec3) -> Self {
+    pub fn new(albedo: Box<dyn Texture + Send + Sync>) -> Self {
         Self { albedo }
     }
 }
@@ -24,7 +25,7 @@ impl Material for Lambertian {
     fn scatter(&self, _ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vec3)> {
         let target = hit.point + hit.normal + random_point_in_unit_sphere();
         let scattered = Ray::new(hit.point, target - hit.point);
-        let attenuation = self.albedo;
+        let attenuation = self.albedo.value(0.0, 0.0, hit.point);
 
         Some((scattered, attenuation))
     }

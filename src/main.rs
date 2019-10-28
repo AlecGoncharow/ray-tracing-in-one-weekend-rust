@@ -9,6 +9,10 @@ use hittable::Hittable;
 use hittable::HittableList;
 use hittable::Sphere;
 
+mod texture;
+use texture::CheckerTexture;
+use texture::ConstantTexture;
+
 mod camera;
 mod material;
 use material::Dielectric;
@@ -93,7 +97,7 @@ fn random_point_in_unit_sphere() -> Vec3 {
     point
 }
 
-fn sphere_cube_scene() -> HittableList {
+fn _sphere_cube_scene() -> HittableList {
     let mut list = HittableList::new();
     let mut rng = rand::thread_rng();
     list.push(Box::new(Sphere::new(
@@ -112,11 +116,14 @@ fn sphere_cube_scene() -> HittableList {
                     list.push(Box::new(Sphere::new(
                         center,
                         0.5,
-                        Box::new(Lambertian::new(Vec3::new(
-                            rng.gen::<f32>() * rng.gen::<f32>(),
-                            rng.gen::<f32>() * rng.gen::<f32>(),
-                            rng.gen::<f32>() * rng.gen::<f32>(),
-                        ))),
+                        Box::new(Lambertian::new(Box::new(ConstantTexture::new(
+                            (
+                                rng.gen::<f32>() * rng.gen::<f32>(),
+                                rng.gen::<f32>() * rng.gen::<f32>(),
+                                rng.gen::<f32>() * rng.gen::<f32>(),
+                            )
+                                .into(),
+                        )))),
                     )));
                 } else if choose_mat < 0.6 {
                     // metal
@@ -153,7 +160,10 @@ fn random_scene() -> HittableList {
     list.push(Box::new(Sphere::new(
         Vec3::new(0.0, -1000.0, -0.0),
         1000.0,
-        Box::new(Lambertian::new(Vec3::new(0.5, 0.5, 0.5))),
+        Box::new(Lambertian::new(Box::new(CheckerTexture::new(
+            Box::new(ConstantTexture::new((0.2, 0.3, 0.1).into())),
+            Box::new(ConstantTexture::new((0.9, 0.9, 0.9).into())),
+        )))),
     )));
 
     for a in -11..11 {
@@ -169,11 +179,14 @@ fn random_scene() -> HittableList {
                 list.push(Box::new(Sphere::new(
                     center,
                     0.2,
-                    Box::new(Lambertian::new(Vec3::new(
-                        rng.gen::<f32>() * rng.gen::<f32>(),
-                        rng.gen::<f32>() * rng.gen::<f32>(),
-                        rng.gen::<f32>() * rng.gen::<f32>(),
-                    ))),
+                    Box::new(Lambertian::new(Box::new(ConstantTexture::new(
+                        (
+                            rng.gen::<f32>() * rng.gen::<f32>(),
+                            rng.gen::<f32>() * rng.gen::<f32>(),
+                            rng.gen::<f32>() * rng.gen::<f32>(),
+                        )
+                            .into(),
+                    )))),
                 )));
             } else if choose_mat < 0.95 {
                 // metal
@@ -203,7 +216,9 @@ fn random_scene() -> HittableList {
     list.push(Box::new(Sphere::new(
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
-        Box::new(Lambertian::new(Vec3::new(0.4, 0.2, 0.1))),
+        Box::new(Lambertian::new(Box::new(ConstantTexture::new(
+            (0.4, 0.2, 0.1).into(),
+        )))),
     )));
 
     list.push(Box::new(Sphere::new(
@@ -218,12 +233,14 @@ fn random_scene() -> HittableList {
         Box::new(Dielectric::new(1.5)),
     )));
 
+    /*
+     * this makes glass sphere into a hollow bubble
     list.push(Box::new(Sphere::new(
         Vec3::new(0.0, 1.0, 0.0),
         -0.99,
         Box::new(Dielectric::new(1.5)),
     )));
-
+    */
     list
 }
 
@@ -240,8 +257,8 @@ fn main() -> std::io::Result<()> {
     });
     let num_samples = 100;
 
-    let look_from = Vec3::new(-18.0, 10.0, 18.0);
-    let look_at = Vec3::new(0.0, 1.5, 0.0);
+    let look_from = Vec3::new(13.0, 2.0, 3.0);
+    let look_at = Vec3::new(0.0, 0.0, 0.0);
     let dist_to_focus = (look_from - look_at).magnitude();
     let aperature = 0.1;
 
@@ -256,7 +273,7 @@ fn main() -> std::io::Result<()> {
     ));
 
     // let world = Arc::new(random_scene());
-    let world = Arc::new(sphere_cube_scene());
+    let world = Arc::new(random_scene());
 
     let mut threads = vec![];
     let color_vecs: Arc<Mutex<Vec<OrderedColorVec>>> = Arc::new(Mutex::new(vec![]));
