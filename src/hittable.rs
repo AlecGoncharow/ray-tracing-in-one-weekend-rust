@@ -4,6 +4,8 @@ use crate::vec::Vec3;
 
 pub struct HitRecord<'a> {
     pub t: f32,
+    pub u: f32,
+    pub v: f32,
     pub point: Vec3,
     pub normal: Vec3,
     pub material: &'a Box<dyn Material + Send + Sync>,
@@ -18,6 +20,8 @@ impl<'a> HitRecord<'a> {
     ) -> Self {
         Self {
             t,
+            u: 0.0,
+            v: 0.0,
             point,
             normal,
             material,
@@ -27,6 +31,13 @@ impl<'a> HitRecord<'a> {
 
 pub trait Hittable {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
+}
+
+pub fn get_sphere_uv(point: Vec3) -> (f32, f32) {
+    let phi = point.z.atan2(point.x);
+    let theta = point.y.asin();
+    use std::f32::consts::PI;
+    (1.0 - (phi + PI) / (2.0 * PI), (theta + PI / 2.0) / PI)
 }
 
 pub struct Sphere {
@@ -67,6 +78,10 @@ impl Hittable for Sphere {
                 rec.t = temp;
                 rec.point = ray.point_at_parameter(rec.t);
                 rec.normal = (rec.point - self.center) * (1.0 / self.radius);
+                let (u, v) = get_sphere_uv((rec.point - self.center) * (1.0 / self.radius));
+                rec.u = u;
+                rec.v = v;
+
                 return Some(rec);
             }
 
@@ -76,6 +91,9 @@ impl Hittable for Sphere {
                 rec.t = temp;
                 rec.point = ray.point_at_parameter(rec.t);
                 rec.normal = (rec.point - self.center) * (1.0 / self.radius);
+                let (u, v) = get_sphere_uv((rec.point - self.center) * (1.0 / self.radius));
+                rec.u = u;
+                rec.v = v;
                 return Some(rec);
             }
         }

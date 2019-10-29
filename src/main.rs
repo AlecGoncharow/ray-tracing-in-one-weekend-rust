@@ -16,6 +16,7 @@ use texture::ConstantTexture;
 mod camera;
 mod material;
 use material::Dielectric;
+use material::DiffuseLight;
 use material::Lambertian;
 use material::Metal;
 
@@ -68,22 +69,28 @@ impl Color {
     }
 }
 
-fn color(ray: Ray, world: Box<&dyn Hittable>, depth: u32) -> Vec3 {
+fn color(ray: Ray, world: Box<&dyn Hittable>, depth: u32, has_light: bool) -> Vec3 {
     if let Some(hit) = world.hit(&ray, 0.001, std::f32::MAX) {
+        let emitted = hit.material.emitted(hit.u, hit.v, hit.point);
         if let Some((scattered, attenuation)) = hit.material.scatter(&ray, &hit) {
             if depth >= 50 {
-                return Vec3::new(0.0, 0.0, 0.0);
+                return emitted;
             }
-            return attenuation.make_comp_mul(&color(scattered, world, depth + 1));
+            return emitted
+                + attenuation.make_comp_mul(&color(scattered, world, depth + 1, has_light));
         } else {
             // absorbed
-            return Vec3::new(0.0, 0.0, 0.0);
+            return emitted;
+        }
+    } else {
+        if has_light {
+            Vec3::new(0.0, 0.0, 0.0)
+        } else {
+            let unit_direction = ray.direction.make_unit_vector();
+            let t = 0.5 * (unit_direction.y + 1.0);
+            (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
         }
     }
-
-    let unit_direction = ray.direction.make_unit_vector();
-    let t = 0.5 * (unit_direction.y + 1.0);
-    (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
 }
 
 fn random_point_in_unit_sphere() -> Vec3 {
@@ -150,6 +157,34 @@ fn _sphere_cube_scene() -> HittableList {
             }
         }
     }
+
+    list
+}
+
+fn light_scene() -> HittableList {
+    let mut list = HittableList::new();
+    list.push(Box::new(Sphere::new(
+        Vec3::new(0.0, -1000.0, -0.0),
+        1000.0,
+        Box::new(Lambertian::new(Box::new(CheckerTexture::new(
+            Box::new(ConstantTexture::new((0.2, 0.3, 0.1).into())),
+            Box::new(ConstantTexture::new((0.9, 0.9, 0.9).into())),
+        )))),
+    )));
+
+    list.push(Box::new(Sphere::new(
+        Vec3::new(1.0, 4.0, 0.0),
+        1.0,
+        Box::new(DiffuseLight::new(Box::new(ConstantTexture::new(
+            (4.0, 4.0, 4.0).into(),
+        )))),
+    )));
+
+    list.push(Box::new(Sphere::new(
+        Vec3::new(0.0, 1.0, 0.0),
+        1.0,
+        Box::new(Dielectric::new(1.5)),
+    )));
 
     list
 }
@@ -227,12 +262,21 @@ fn random_scene() -> HittableList {
         Box::new(Metal::new(Vec3::new(0.7, 0.6, 0.5), 0.0)),
     )));
 
+    /*
+    list.push(Box::new(Sphere::new(
+        Vec3::new(13.0, 5.0, 3.0),
+        1.0,
+        Box::new(DiffuseLight::new(Box::new(ConstantTexture::new(
+            (4.0, 4.0, 4.0).into(),
+        )))),
+    )));
+    */
+
     list.push(Box::new(Sphere::new(
         Vec3::new(0.0, 1.0, 0.0),
         1.0,
         Box::new(Dielectric::new(1.5)),
     )));
-
     /*
      * this makes glass sphere into a hollow bubble
     list.push(Box::new(Sphere::new(
@@ -251,8 +295,8 @@ struct OrderedColorVec {
 
 fn main() -> std::io::Result<()> {
     let out = Arc::new(Output {
-        rows: 800,
-        cols: 1200,
+        rows: 400,
+        cols: 600,
         colors: Arc::new(Mutex::new(vec![])),
     });
     let num_samples = 100;
@@ -274,11 +318,13 @@ fn main() -> std::io::Result<()> {
 
     // let world = Arc::new(random_scene());
     let world = Arc::new(random_scene());
+    let has_light = false;
 
     let mut threads = vec![];
+    let thread_count = 8;
     let color_vecs: Arc<Mutex<Vec<OrderedColorVec>>> = Arc::new(Mutex::new(vec![]));
 
-    for i in 0..8 {
+    for i in 0..thread_count {
         let world = Arc::clone(&world);
         let camera = Arc::clone(&camera);
         let out = Arc::clone(&out);
@@ -289,8 +335,8 @@ fn main() -> std::io::Result<()> {
         let color_vecs = Arc::clone(&color_vecs);
         threads.push(thread::spawn(move || {
             let mut rng = rand::thread_rng();
-            let start_row = i * out.rows / 8;
-            let end_row = start_row + out.rows / 8;
+            let start_row = i * out.rows / thread_count;
+            let end_row = start_row + out.rows / thread_count;
 
             for j in start_row..end_row {
                 println!("row: {:?}", j);
@@ -301,7 +347,7 @@ fn main() -> std::io::Result<()> {
                         let u = (i as f32 + rng.gen::<f32>()) / out.cols as f32;
                         let v = (out.rows as f32 - (j as f32 + rng.gen::<f32>())) / out.rows as f32;
                         let ray = camera.get_ray(u, v);
-                        sampled_color_sum += color(ray, Box::new(&*world), 0)
+                        sampled_color_sum += color(ray, Box::new(&*world), 0, has_light)
                     }
 
                     let unsum = sampled_color_sum * (1.0 / num_samples as f32);

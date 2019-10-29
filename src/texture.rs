@@ -1,4 +1,3 @@
-use crate::ray::Ray;
 use crate::vec::Vec3;
 
 pub trait Texture {
