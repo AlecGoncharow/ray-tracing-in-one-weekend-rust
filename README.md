@@ -8,6 +8,9 @@ reference scene
 textured scene
 ![](examples/checkers.png)
 
+scene with light
+![](examples/light_sphere.png)
+
 5x5 cube
 ![](examples/5x5cube.png)
 
