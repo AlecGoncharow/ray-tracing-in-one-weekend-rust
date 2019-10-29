@@ -65,7 +65,8 @@ impl Color {
     }
 
     fn from_normalized_vec3(vec: Vec3) -> Self {
-        Self::from_vec3(vec * 255.99)
+        // vec isn't guarenteed to be normal, clamp it to make it so
+        Self::from_vec3(vec.clamp(0.0, 1.0) * 255.99)
     }
 }
 
@@ -86,6 +87,7 @@ fn color(ray: Ray, world: Box<&dyn Hittable>, depth: u32, has_light: bool) -> Ve
         if has_light {
             Vec3::new(0.0, 0.0, 0.0)
         } else {
+            // pretend light exists
             let unit_direction = ray.direction.make_unit_vector();
             let t = 0.5 * (unit_direction.y + 1.0);
             (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
@@ -173,7 +175,7 @@ fn light_scene() -> HittableList {
     )));
 
     list.push(Box::new(Sphere::new(
-        Vec3::new(1.0, 4.0, 0.0),
+        Vec3::new(0.0, 6.0, 0.0),
         1.0,
         Box::new(DiffuseLight::new(Box::new(ConstantTexture::new(
             (4.0, 4.0, 4.0).into(),
@@ -189,7 +191,7 @@ fn light_scene() -> HittableList {
     list
 }
 
-fn random_scene() -> HittableList {
+fn _random_scene() -> HittableList {
     let mut rng = rand::thread_rng();
     let mut list = HittableList::new();
     list.push(Box::new(Sphere::new(
@@ -295,11 +297,11 @@ struct OrderedColorVec {
 
 fn main() -> std::io::Result<()> {
     let out = Arc::new(Output {
-        rows: 400,
-        cols: 600,
+        rows: 800,
+        cols: 1200,
         colors: Arc::new(Mutex::new(vec![])),
     });
-    let num_samples = 100;
+    let num_samples = 1_000;
 
     let look_from = Vec3::new(13.0, 2.0, 3.0);
     let look_at = Vec3::new(0.0, 0.0, 0.0);
@@ -310,18 +312,18 @@ fn main() -> std::io::Result<()> {
         look_from,
         look_at,
         Vec3::new(0.0, 1.0, 0.0),
-        30.0,
+        20.0,
         out.cols as f32 / out.rows as f32,
         aperature,
         dist_to_focus,
     ));
 
     // let world = Arc::new(random_scene());
-    let world = Arc::new(random_scene());
-    let has_light = false;
+    let world = Arc::new(light_scene());
+    let has_light = true;
 
     let mut threads = vec![];
-    let thread_count = 8;
+    let thread_count = 16;
     let color_vecs: Arc<Mutex<Vec<OrderedColorVec>>> = Arc::new(Mutex::new(vec![]));
 
     for i in 0..thread_count {

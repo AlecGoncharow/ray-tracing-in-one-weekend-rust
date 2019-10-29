@@ -102,6 +102,33 @@ impl Vec3 {
     pub fn normalize(&mut self) {
         *self = self.make_unit_vector();
     }
+
+    #[inline]
+    pub fn clamp(&self, min: f32, max: f32) -> Self {
+        Self {
+            x: if self.x < min {
+                min
+            } else if self.x > max {
+                max
+            } else {
+                self.x
+            },
+            y: if self.y < min {
+                min
+            } else if self.y > max {
+                max
+            } else {
+                self.y
+            },
+            z: if self.z < min {
+                min
+            } else if self.z > max {
+                max
+            } else {
+                self.z
+            },
+        }
+    }
 }
 
 impl From<(f32, f32, f32)> for Vec3 {
